@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Omegle-like Video Chat (Minimal)</title>
+  <style>
+    body { font-family: Arial, sans-serif; display:flex; flex-direction:column; align-items:center; padding:20px;}
+    video { width:45%; max-width:480px; border:1px solid #ccc; background:#000; }
+    #controls { margin:10px; }
+    .row { display:flex; gap:10px; width:100%; justify-content:center; }
+  </style>
+</head>
+<body>
+  <h2>Omegle-like Video Chat (Minimal)</h2>
+  <div id="status">Initializing...</div>
+  <div class="row">
+    <video id="local" autoplay muted playsinline></video>
+    <video id="remote" autoplay playsinline></video>
+  </div>
+  <div id="controls">
+    <button id="startBtn">Start & Find Partner</button>
+    <button id="leaveBtn" disabled>Leave</button>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
