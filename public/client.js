@@ -2,6 +2,7 @@
 const socket = io(
   // agar backend alag domain pe deploy hai to URL yaha do
   // example: "https://your-backend.onrender.com"
+  { autoConnect: false }
 );
 
 // ---- DOM Elements ----
@@ -20,7 +21,8 @@ const messagesDiv = document.getElementById("messages");
 let pc = null;
 let localStream = null;
 let currentRoom = null;
-let myRole = null; // caller ya callee
+let myRole = null;
+let partnerId = null; // 🔑 partner ka socket.id store hoga
 
 // ---- Media Access ----
 async function getMedia() {
@@ -29,6 +31,10 @@ async function getMedia() {
       video: true,
       audio: true,
     });
+
+    // 🔥 Mirror effect fix (ulta camera theek hoga)
+    localV.style.transform = "scaleX(-1)";
+
     localV.srcObject = s;
     localStream = s;
     return true;
@@ -39,11 +45,10 @@ async function getMedia() {
 }
 
 // ---- Create PeerConnection ----
-function createPC(roomId) {
+function createPC() {
   const configuration = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
-      // Turn server (replace with production credentials)
       {
         urls: ["turn:your-turn-server.com:3478"],
         username: "testuser",
@@ -56,9 +61,9 @@ function createPC(roomId) {
 
   // Send ICE candidates
   pc.onicecandidate = (e) => {
-    if (e.candidate) {
+    if (e.candidate && partnerId) {
       socket.emit("signal", {
-        to: roomId,
+        to: partnerId,
         data: { type: "ice", candidate: e.candidate },
       });
     }
@@ -89,6 +94,16 @@ startBtn.onclick = async () => {
 
 // ---- Leave Button ----
 leaveBtn.onclick = () => {
+  leaveRoom();
+  // 1.5 sec ke baad automatically find new partner
+  setTimeout(() => {
+    socket.connect();
+    socket.emit("join");
+  }, 1500);
+};
+
+// ---- Leave Room helper ----
+function leaveRoom() {
   if (pc) pc.close();
   pc = null;
 
@@ -98,26 +113,34 @@ leaveBtn.onclick = () => {
     localStream = null;
   }
 
-  socket.disconnect();
-  window.location.reload();
-};
+  if (currentRoom) {
+    socket.emit("leave", currentRoom);
+    currentRoom = null;
+  }
+
+  partnerId = null;
+  leaveBtn.disabled = true;
+  startBtn.disabled = false;
+  status.textContent = "Left the call";
+}
 
 // ---- Socket Events ----
 socket.on("waiting", () => {
   status.textContent = "Waiting for a partner...";
 });
 
-socket.on("matched", async ({ room, role }) => {
+socket.on("matched", async ({ room, role, partner }) => {
   status.textContent = "Matched! Setting up call...";
   currentRoom = room;
   myRole = role;
-  createPC(room);
+  partnerId = partner; // 🔑 partner id set karo
+  createPC();
 
   if (myRole === "caller") {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     socket.emit("signal", {
-      to: room,
+      to: partnerId,
       data: { type: "offer", sdp: offer },
     });
   }
@@ -126,14 +149,15 @@ socket.on("matched", async ({ room, role }) => {
 });
 
 socket.on("signal", async ({ from, data }) => {
-  if (!pc && localStream) createPC(from);
+  if (!pc && localStream) createPC();
 
   if (data.type === "offer" && myRole === "callee") {
+    partnerId = from; // ensure partner set hai
     await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     socket.emit("signal", {
-      to: from,
+      to: partnerId,
       data: { type: "answer", sdp: answer },
     });
     leaveBtn.disabled = false;
@@ -150,22 +174,39 @@ socket.on("signal", async ({ from, data }) => {
   }
 });
 
+// ---- Partner Left ----
+socket.on("partner_left", () => {
+  status.textContent = "Partner left. Finding new partner...";
+  leaveRoom();
+  setTimeout(() => {
+    socket.connect();
+    socket.emit("join");
+  }, 1500);
+});
+
 // ---- Chat ----
 sendBtn.onclick = () => {
-  if (!msgInput.value.trim()) return;
-  const msg = { text: msgInput.value, roomId: currentRoom };
+  const text = msgInput.value.trim();
+  if (!text) return;
+  const msg = { text, roomId: currentRoom };
   socket.emit("send_message", msg);
-  addMessage("You", msg.text);
+  addMessage("me", text);
   msgInput.value = "";
 };
 
-socket.on("receive_message", (msg) => {
-  addMessage("Partner", msg.text);
+msgInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendBtn.click();
 });
 
-function addMessage(sender, text) {
+socket.on("receive_message", (msg) => {
+  addMessage("partner", msg.text);
+});
+
+// ✅ Chat Bubble system
+function addMessage(type, text) {
   const div = document.createElement("div");
-  div.textContent = `${sender}: ${text}`;
+  div.classList.add("message", type);
+  div.textContent = text;
   messagesDiv.appendChild(div);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
