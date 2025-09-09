@@ -1,27 +1,68 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>Omegle-like Video Chat (Minimal)</title>
-  <style>
-    body { font-family: Arial, sans-serif; display:flex; flex-direction:column; align-items:center; padding:20px;}
-    video { width:45%; max-width:480px; border:1px solid #ccc; background:#000; }
-    #controls { margin:10px; }
-    .row { display:flex; gap:10px; width:100%; justify-content:center; }
-  </style>
-</head>
-<body>
-  <h2> Video Chat </h2>
-  <div id="status">Initializing...</div>
-  <div class="row">
-    <video id="local" autoplay muted playsinline></video>
-    <video id="remote" autoplay playsinline></video>
-  </div>
-  <div id="controls">
-    <button id="startBtn">Start & Find Partner</button>
+  <head>
+    <title>Omegle Clone</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+      }
+      video {
+        width: 300px;
+        height: 200px;
+        background: #000;
+        margin: 5px;
+      }
+      #chat {
+        margin-top: 20px;
+      }
+      #messages {
+        height: 150px;
+        width: 400px;
+        border: 1px solid #ccc;
+        overflow-y: auto;
+        margin: 0 auto 10px;
+        padding: 5px;
+        text-align: left;
+      }
+      #status {
+        margin: 10px;
+        font-weight: bold;
+        color: green;
+      }
+      button {
+        margin: 5px;
+        padding: 8px 16px;
+      }
+      input {
+        padding: 6px;
+        width: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🎥 Omegle Clone (Video + Chat)</h2>
+
+    <p id="status">Not connected</p>
+
+    <button id="startBtn">Find Partner</button>
     <button id="leaveBtn" disabled>Leave</button>
-  </div>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="client.js"></script>
-</body>
+
+    <div>
+      <video id="local" autoplay muted></video>
+      <video id="remote" autoplay></video>
+    </div>
+
+    <div id="chat">
+      <h3>💬 Chat</h3>
+      <div id="messages"></div>
+      <input id="msgInput" placeholder="Type a message..." />
+      <button id="sendBtn">Send</button>
+    </div>
+
+    <!-- Socket.io -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Client logic -->
+    <script src="client.js"></script>
+  </body>
 </html>
