@@ -1,215 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Chat Clone</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        margin: 0;
-        padding: 0;
-        background: #f7f7f7;
-        color: #333;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Chat Clone</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      color: #333;
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark {
+      background: #1e1e1e;
+      color: #f0f0f0;
+    }
 
-      header {
-        padding: 15px;
-        background: #4a90e2;
-        color: white;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      }
+    header {
+      padding: 15px;
+      background: #4a90e2;
+      color: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    h2 { margin: 0; font-size: 20px; }
 
-      h2 {
-        margin: 0;
-        font-size: 20px;
-      }
+    .video-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      padding: 10px;
+    }
+    video {
+      flex: 1;
+      max-width: 45%;
+      min-width: 280px;
+      aspect-ratio: 4/3;
+      background: #000;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      object-fit: cover; /* 🔥 Fix black margin issue */
+    }
+    #local { transform: scaleX(-1); }
 
-      .video-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 15px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-        padding: 10px;
-      }
+    /* 🎛 Button container */
+    .btn-container { margin: 15px 0; text-align: center; }
+    .btn-container button {
+      margin: 5px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    #startBtn { background: #28a745; color: white; }
+    #leaveBtn { background: #dc3545; color: white; }
+    #muteBtn { background: #ffc107; }
+    #cameraBtn { background: #17a2b8; color: white; }
+    #modeBtn { background: #6c757d; color: white; }
 
-      video {
-        flex: 1;
-        max-width: 45%;
-        min-width: 280px;
-        aspect-ratio: 4/3;
-        background: #000;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-      }
+    /* 🟡 Status */
+    #status { margin: 10px 0 20px; font-weight: bold; }
 
-      /* 🔥 Mirror local video */
-      #local {
-        transform: scaleX(-1);
-      }
+    /* 🔥 Toast notifications */
+    #toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s, transform 0.4s;
+      transform: translateY(-20px);
+      z-index: 1000;
+    }
+    #toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
 
-      /* 🎛 Button container */
-      .btn-container {
-        margin: 15px 0;
-        text-align: center;
-      }
+    /* Chat box */
+    #chat {
+      margin: 20px auto;
+      padding: 15px;
+      max-width: 600px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      height: 320px;
+    }
+    body.dark #chat { background: #2c2c2c; }
 
-      .btn-container button {
-        margin: 5px;
-        padding: 10px 18px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.2s;
-      }
+    #chat h3 { margin-top: 0; }
 
-      #startBtn {
-        background: #28a745;
-        color: white;
-      }
-      #startBtn:hover {
-        background: #218838;
-      }
+    /* Input box */
+    #chat-input { display: flex; margin-bottom: 10px; }
+    #msgInput {
+      flex: 1; padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px; outline: none;
+    }
+    #sendBtn {
+      padding: 8px 14px;
+      background: #007bff; color: white;
+      border: none; border-radius: 4px;
+      margin-left: 5px;
+    }
 
-      #leaveBtn {
-        background: #dc3545;
-        color: white;
-      }
-      #leaveBtn:hover {
-        background: #c82333;
-      }
+    /* Messages */
+    #messages {
+      flex: 1; border: 1px solid #ccc;
+      overflow-y: auto; padding: 8px;
+      background: #fafafa; border-radius: 6px;
+      font-size: 14px; display: flex; flex-direction: column;
+    }
+    .message {
+      max-width: 70%;
+      padding: 8px 12px;
+      border-radius: 16px;
+      margin: 4px 0;
+      word-wrap: break-word;
+    }
+    .me { align-self: flex-end; background: #dcf8c6; }
+    .partner { align-self: flex-start; background: #ececec; }
+    .typing { font-style: italic; font-size: 12px; color: #888; }
 
-      /* 🟡 Status (notification) */
-      #status {
-        margin: 10px 0 20px;
-        font-weight: bold;
-        color: #555;
-      }
+    /* 📱 Responsive */
+    @media (max-width: 768px) {
+      .video-container { flex-direction: column; }
+      video { max-width: 95%; }
+    }
+  </style>
+</head>
+<body>
+  <header><h2>🎥 Video Chat Clone</h2></header>
 
-      #chat {
-        margin: 20px auto;
-        padding: 15px;
-        max-width: 600px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        display: flex;
-        flex-direction: column;
-        height: 320px;
-      }
+  <!-- Videos -->
+  <div class="video-container">
+    <video id="local" autoplay muted playsinline></video>
+    <video id="remote" autoplay playsinline></video>
+  </div>
 
-      #chat h3 {
-        margin-top: 0;
-      }
+  <!-- Buttons -->
+  <div class="btn-container">
+    <button id="startBtn">Find Partner</button>
+    <button id="leaveBtn" disabled>Leave</button>
+    <button id="muteBtn">Mute Mic</button>
+    <button id="cameraBtn">Stop Camera</button>
+    <button id="modeBtn">Dark Mode</button>
+  </div>
 
-      /* Input box 🔼 ऊपर */
-      #chat-input {
-        display: flex;
-        margin-bottom: 10px;
-      }
+  <!-- Status -->
+  <p id="status">Not connected</p>
 
-      #msgInput {
-        flex: 1;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        outline: none;
-      }
-
-      #sendBtn {
-        padding: 8px 14px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        margin-left: 5px;
-      }
-      #sendBtn:hover {
-        background: #0069d9;
-      }
-
-      /* Messages box 🔽 नीचे */
-      #messages {
-        flex: 1;
-        border: 1px solid #ccc;
-        overflow-y: auto;
-        padding: 8px;
-        background: #fafafa;
-        border-radius: 6px;
-        font-size: 14px;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* 💬 Chat Bubbles */
-      .message {
-        max-width: 70%;
-        padding: 8px 12px;
-        border-radius: 16px;
-        margin: 4px 0;
-        word-wrap: break-word;
-      }
-
-      .me {
-        align-self: flex-end;
-        background: #dcf8c6;
-        border-bottom-right-radius: 4px;
-      }
-
-      .partner {
-        align-self: flex-start;
-        background: #ececec;
-        border-bottom-left-radius: 4px;
-      }
-
-      /* 📱 Mobile Responsive */
-      @media (max-width: 768px) {
-        .video-container {
-          flex-direction: column;
-        }
-
-        video {
-          max-width: 95%;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h2>🎥 Video Clone (Video + Chat)</h2>
-    </header>
-
-    <!-- Video Box -->
-    <div class="video-container">
-      <video id="local" autoplay muted playsinline></video>
-      <video id="remote" autoplay playsinline></video>
+  <!-- Chat -->
+  <div id="chat">
+    <h3>💬 Chat</h3>
+    <div id="chat-input">
+      <input id="msgInput" placeholder="Type a message..." />
+      <button id="sendBtn">Send</button>
     </div>
+    <div id="messages"></div>
+  </div>
 
-    <!-- Buttons -->
-    <div class="btn-container">
-      <button id="startBtn">Find Partner</button>
-      <button id="leaveBtn" disabled>Leave</button>
-    </div>
+  <!-- Toast -->
+  <div id="toast"></div>
 
-    <!-- Status notification -->
-    <p id="status">Not connected</p>
-
-    <!-- Chat Box -->
-    <div id="chat">
-      <h3>💬 Chat</h3>
-      <div id="chat-input">
-        <input id="msgInput" placeholder="Type a message..." />
-        <button id="sendBtn">Send</button>
-      </div>
-      <div id="messages"></div>
-    </div>
-
-    <!-- Socket.io -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="client.js"></script>
-  </body>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
 </html>
